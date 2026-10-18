@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Colección Pokémon 30º Aniversario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #f8fafc; /* Slate 50 */
+            
+            /* Configuración del fondo a pantalla completa */
+            background-color: #0f172a; /* Color de respaldo (Slate 900) */
+            /* El linear-gradient oscurece la imagen un 85% para que el texto blanco se lea bien. 
+               Si quieres la imagen original brillante, borra la parte de 'linear-gradient(...), ' */
+            background-image:  url('media/background.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+        }
+
+        .card-aspect-ratio {
+            aspect-ratio: 2.5 / 3.5;
+        }
+
+        /* Transiciones suaves para los cambios de estado */
+        .card-image {
+            transition: all 0.3s ease-in-out;
+        }
+
+        /* Efecto hover ligero para saber que es clickeable */
+        .card-container:hover .card-image {
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Cabecera -->
+        <header class="text-center mb-10 bg-slate-800/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-slate-700">
+            <h1 class="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600 mb-4">
+                Colección Pokémon 30º Aniversario
+            </h1>
+            <p class="text-lg md:text-xl text-slate-300 font-semibold mb-2">
+                Álbum de Coleccionista
+            </p>
+            <div class="inline-block bg-slate-900/90 px-6 py-3 rounded-full border border-slate-600 shadow-inner">
+                <p class="text-xl font-bold">
+                    Cartas obtenidas: <span id="progress-count" class="text-yellow-400">0</span> de <span id="total-count">0</span>
+                </p>
+                <div class="w-full bg-slate-700 rounded-full h-2.5 mt-3">
+                    <div id="progress-bar" class="bg-gradient-to-r from-green-400 to-green-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Cuadrícula de Cartas -->
+        <main id="card-grid" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-2 md:gap-6">
+            <!-- Las cartas se generarán dinámicamente aquí -->
+        </main>
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIGURACIÓN FÁCILMENTE EDITABLE
+        // ==========================================
+        const CONFIG = {
+            TOTAL_CARDS: 158,       // Número total de cartas en la colección
+            IMG_EXTENSION: '.png', // Extensión de los archivos de imagen
+            IMG_PATH: 'media/',    // Ruta relativa donde se encuentran las imágenes (sin barra inicial)
+            STORAGE_KEY: 'pokemon_30th_collection' // Clave para guardar en localStorage
+        };
+
+        // ==========================================
+        // LÓGICA DE LA APLICACIÓN
+        // ==========================================
+        const grid = document.getElementById('card-grid');
+        const progressCount = document.getElementById('progress-count');
+        const totalCount = document.getElementById('total-count');
+        const progressBar = document.getElementById('progress-bar');
+        
+        let ownedCards = new Set();
+
+        // Inicializar la aplicación
+        function init() {
+            // Actualizar la interfaz con el total
+            totalCount.textContent = CONFIG.TOTAL_CARDS;
+            
+            // Cargar datos guardados previamente
+            loadCollection();
+            
+            // Generar las cartas en el HTML
+            renderCards();
+            
+            // Actualizar contador inicial
+            updateProgress();
+        }
+
+        // Cargar estado desde localStorage
+        function loadCollection() {
+            const savedData = localStorage.getItem(CONFIG.STORAGE_KEY);
+            if (savedData) {
+                try {
+                    // Convertir el array guardado de vuelta a un Set
+                    ownedCards = new Set(JSON.parse(savedData));
+                } catch (e) {
+                    console.error("Error al cargar la colección:", e);
+                    ownedCards = new Set();
+                }
+            }
+        }
+
+        // Guardar estado en localStorage
+        function saveCollection() {
+            // Convertir Set a Array para poder guardarlo en JSON
+            localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(Array.from(ownedCards)));
+        }
+
+        // Generar el DOM de las cartas
+        function renderCards() {
+            grid.innerHTML = ''; // Limpiar grid
+
+            for (let i = 1; i <= CONFIG.TOTAL_CARDS; i++) {
+                const isOwned = ownedCards.has(i);
+                
+                // Formatear el número para que tenga 3 dígitos con ceros a la izquierda (ej: 001, 045, 158)
+                const paddedNumber = String(i).padStart(3, '0');
+                
+                // Contenedor principal de la carta
+                const cardDiv = document.createElement('div');
+                cardDiv.className = `card-container relative card-aspect-ratio rounded-xl overflow-hidden shadow-md cursor-pointer border-2 select-none ${isOwned ? 'border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.3)]' : 'border-slate-700 hover:border-slate-500'}`;
+                cardDiv.dataset.id = i;
+                
+                // Imagen de la carta
+                const img = document.createElement('img');
+                img.src = `${CONFIG.IMG_PATH}${paddedNumber}${CONFIG.IMG_EXTENSION}`;
+                img.alt = `Carta Pokémon #${paddedNumber}`;
+                // Fallback por si la imagen no existe en la ruta relativa
+                img.onerror = function() {
+                    this.onerror = null; 
+                    this.src = `https://placehold.co/250x350/1e293b/94a3b8?text=Carta+${paddedNumber}`;
+                };
+                img.className = `card-image w-full h-full object-cover ${isOwned ? '' : 'grayscale brightness-[0.3] blur-[1px]'}`;
+                
+                // Número superpuesto (solo visible si no la tienes)
+                const numberOverlay = document.createElement('div');
+                numberOverlay.className = `absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300 ${isOwned ? 'opacity-0' : 'opacity-100'}`;
+                numberOverlay.innerHTML = `<span class="text-4xl md:text-5xl font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">#${paddedNumber}</span>`;
+
+                // Ensamblar
+                cardDiv.appendChild(img);
+                cardDiv.appendChild(numberOverlay);
+                
+                // Evento click
+                cardDiv.addEventListener('click', () => toggleCard(i, cardDiv, img, numberOverlay));
+                
+                grid.appendChild(cardDiv);
+            }
+        }
+
+        // Alternar el estado de una carta
+        function toggleCard(id, cardElement, imgElement, overlayElement) {
+            if (ownedCards.has(id)) {
+                // Desmarcar: Pasarla a "no la tengo"
+                ownedCards.delete(id);
+                cardElement.classList.remove('border-yellow-400', 'shadow-[0_0_15px_rgba(250,204,21,0.3)]');
+                cardElement.classList.add('border-slate-700', 'hover:border-slate-500');
+                imgElement.classList.add('grayscale', 'brightness-[0.3]', 'blur-[1px]');
+                overlayElement.classList.remove('opacity-0');
+                overlayElement.classList.add('opacity-100');
+            } else {
+                // Marcar: Pasarla a "la tengo"
+                ownedCards.add(id);
+                cardElement.classList.remove('border-slate-700', 'hover:border-slate-500');
+                cardElement.classList.add('border-yellow-400', 'shadow-[0_0_15px_rgba(250,204,21,0.3)]');
+                imgElement.classList.remove('grayscale', 'brightness-[0.3]', 'blur-[1px]');
+                overlayElement.classList.remove('opacity-100');
+                overlayElement.classList.add('opacity-0');
+            }
+            
+            // Guardar cambios y actualizar contador
+            saveCollection();
+            updateProgress();
+        }
+
+        // Actualizar el contador de progreso y la barra
+        function updateProgress() {
+            const count = ownedCards.size;
+            progressCount.textContent = count;
+            
+            const percentage = (count / CONFIG.TOTAL_CARDS) * 100;
+            progressBar.style.width = `${percentage}%`;
+        }
+
+        // Ejecutar inicialización cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', init);
+
+    </script>
+</body>
+</html>
